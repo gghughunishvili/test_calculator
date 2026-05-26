@@ -1,6 +1,10 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM element references to avoid redundant lookups
+const currentOperandDisplay = document.getElementById('current-operand');
+const previousOperandDisplay = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
         // Split by operators to find the last number segment
@@ -19,7 +23,8 @@ function clearDisplay() {
 }
 
 function deleteLast() {
-    currentOperand = currentOperand.toString().slice(0, -1);
+    // Remove redundant .toString() call as currentOperand is already a string
+    currentOperand = currentOperand.slice(0, -1);
     updateDisplay();
 }
 
@@ -48,8 +53,9 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Use textContent instead of innerText to minimize browser layout reflows
+    currentOperandDisplay.textContent = currentOperand || '0';
+    previousOperandDisplay.textContent = previousOperand;
 }
 
 // Add keyboard support
