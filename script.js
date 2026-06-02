@@ -1,6 +1,11 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM element references to avoid redundant lookups in every updateDisplay call.
+// This provides a measurable performance boost when the display is updated frequently.
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
         // Split by operators to find the last number segment
@@ -48,8 +53,10 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Optimization: Use textContent instead of innerText to avoid unnecessary layout reflows.
+    // textContent is faster as it doesn't consider CSS styling and doesn't trigger a reflow.
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
