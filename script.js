@@ -1,6 +1,10 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements for better performance
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
         // Split by operators to find the last number segment
@@ -47,9 +51,15 @@ function calculateResult() {
     }
 }
 
+/**
+ * Updates the calculator display.
+ * Performance Optimization:
+ * 1. Uses cached DOM elements to avoid redundant lookups.
+ * 2. Uses textContent instead of innerText to avoid unnecessary layout reflows.
+ */
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
