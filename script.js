@@ -1,12 +1,33 @@
 let currentOperand = '';
 let previousOperand = '';
 
+/**
+ * Cache DOM elements for faster access.
+ * These are placed at the top level, which is safe as the script is loaded
+ * at the bottom of the body in index.html.
+ */
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
+/**
+ * Optimized: append character with efficient decimal point validation
+ * avoiding expensive string splitting and regex.
+ */
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Ensure currentOperand is a string before calling lastIndexOf
+        const opStr = currentOperand.toString();
+        // Find the last operator or parenthesis to isolate the current numeric segment
+        const lastOperatorIndex = Math.max(
+            opStr.lastIndexOf('+'),
+            opStr.lastIndexOf('-'),
+            opStr.lastIndexOf('*'),
+            opStr.lastIndexOf('/'),
+            opStr.lastIndexOf('('),
+            opStr.lastIndexOf(')')
+        );
+        // Efficiently check if the current segment already contains a decimal point
+        if (opStr.indexOf('.', lastOperatorIndex + 1) !== -1) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -19,6 +40,7 @@ function clearDisplay() {
 }
 
 function deleteLast() {
+    // Ensure currentOperand is a string before slicing to prevent crashes if it's a number
     currentOperand = currentOperand.toString().slice(0, -1);
     updateDisplay();
 }
@@ -32,6 +54,7 @@ function calculateResult() {
              throw new Error("Invalid Input");
         }
 
+        // Use Function constructor for evaluation as a safer alternative to eval()
         const result = new Function('return ' + currentOperand)();
 
         previousOperand = currentOperand + ' =';
@@ -47,9 +70,13 @@ function calculateResult() {
     }
 }
 
+/**
+ * Optimized: update display using cached DOM references and textContent
+ * to minimize layout reflows and DOM lookup overhead.
+ */
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
