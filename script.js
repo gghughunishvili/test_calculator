@@ -1,11 +1,23 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Performance optimization: Cache DOM element references to avoid repeated lookups
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Performance optimization: Avoid expensive string split and array creation.
+        // Use lastIndexOf with the largest index to isolate the current numeric segment.
+        const lastOpIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.slice(lastOpIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -19,6 +31,7 @@ function clearDisplay() {
 }
 
 function deleteLast() {
+    // Ensure currentOperand is treated as a string before slicing
     currentOperand = currentOperand.toString().slice(0, -1);
     updateDisplay();
 }
@@ -48,8 +61,13 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Performance optimization: Use cached elements and textContent to minimize reflows
+    if (currentOperandElement) {
+        currentOperandElement.textContent = currentOperand || '0';
+    }
+    if (previousOperandElement) {
+        previousOperandElement.textContent = previousOperand;
+    }
 }
 
 // Add keyboard support
