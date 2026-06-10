@@ -1,12 +1,22 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Optimize: Use lastIndexOf instead of split to find if the current segment already has a decimal
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        if (currentOperand.lastIndexOf('.') > lastOperatorIndex) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -48,8 +58,9 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Optimize: Use cached references and textContent instead of innerText
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
