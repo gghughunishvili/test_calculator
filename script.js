@@ -1,12 +1,23 @@
+// Cache DOM elements for performance
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 let currentOperand = '';
 let previousOperand = '';
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Optimization: use lastIndexOf instead of split() to avoid expensive array creation
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastDecimalIndex = currentOperand.lastIndexOf('.');
+        if (lastDecimalIndex > lastOperatorIndex) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -48,8 +59,10 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Optimization: use cached element references and textContent instead of innerText
+    // textContent is faster as it doesn't trigger reflow/layout calculations
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
