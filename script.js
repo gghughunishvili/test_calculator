@@ -1,11 +1,29 @@
+// Cache DOM element references to avoid redundant lookups
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 let currentOperand = '';
 let previousOperand = '';
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        /**
+         * PERFORMANCE OPTIMIZATION:
+         * Replaced .split() with .lastIndexOf() to avoid expensive array creation and string splitting.
+         * Using Math.max to find the boundary of the current numeric segment.
+         */
+        const lastOpIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')'),
+            currentOperand.lastIndexOf('÷'),
+            currentOperand.lastIndexOf('×'),
+            currentOperand.lastIndexOf('−')
+        );
+        const lastSegment = currentOperand.slice(lastOpIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -19,6 +37,7 @@ function clearDisplay() {
 }
 
 function deleteLast() {
+    // Ensure currentOperand is a string before slicing
     currentOperand = currentOperand.toString().slice(0, -1);
     updateDisplay();
 }
@@ -47,9 +66,14 @@ function calculateResult() {
     }
 }
 
+/**
+ * PERFORMANCE OPTIMIZATION:
+ * 1. Uses cached DOM references instead of document.getElementById.
+ * 2. Uses textContent instead of innerText to minimize layout reflows.
+ */
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
