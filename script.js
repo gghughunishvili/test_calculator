@@ -1,11 +1,23 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Performance optimization: Cache DOM element references
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Performance optimization: Use lastIndexOf instead of split() to avoid creating arrays and multiple strings
+        // This is significantly faster for long expressions.
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.toString().slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -48,8 +60,9 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Performance optimization: Use cached element references and textContent (avoids layout reflows caused by innerText)
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
