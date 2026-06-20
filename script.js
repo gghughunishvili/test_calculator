@@ -1,11 +1,29 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements to avoid repeated lookups
+const currentOperandElement = document.getElementById('current-operand');
+const previousOperandElement = document.getElementById('previous-operand');
+
+/**
+ * Appends a character to the current operand.
+ * Optimization: Uses lastIndexOf to find the start of the current number segment
+ * instead of splitting the entire string into an array, which is much faster
+ * for long expressions.
+ */
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Find the index of the last operator to isolate the current number segment
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+
+        const lastSegment = currentOperand.slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -47,9 +65,14 @@ function calculateResult() {
     }
 }
 
+/**
+ * Updates the calculator display.
+ * Optimization: Uses cached DOM references and textContent instead of innerText
+ * to avoid unnecessary layout reflows and repeated DOM lookups.
+ */
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
