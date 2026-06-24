@@ -1,11 +1,26 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements lazily for better performance
+let currentOperandElement = null;
+let previousOperandElement = null;
+
 function appendCharacter(char) {
+    // Ensure currentOperand is a string for string operations
+    currentOperand = currentOperand.toString();
+
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Optimization: Use lastIndexOf instead of split() to avoid array allocation
+        // and improve performance on long expressions.
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -19,6 +34,7 @@ function clearDisplay() {
 }
 
 function deleteLast() {
+    // Ensure currentOperand is treated as a string before slicing
     currentOperand = currentOperand.toString().slice(0, -1);
     updateDisplay();
 }
@@ -48,8 +64,21 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Optimization: Lazy initialization of cached elements
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+
+    // Optimization: Use textContent instead of innerText to avoid unnecessary layout reflows
+    if (currentOperandElement) {
+        currentOperandElement.textContent = currentOperand || '0';
+    }
+    if (previousOperandElement) {
+        previousOperandElement.textContent = previousOperand;
+    }
 }
 
 // Add keyboard support
