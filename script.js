@@ -3,9 +3,17 @@ let previousOperand = '';
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Performance optimization: Avoid expensive regex split for decimal validation.
+        // Find the last segment by searching for the last operator index.
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -47,9 +55,21 @@ function calculateResult() {
     }
 }
 
+// Cache DOM elements
+let currentOperandElement = null;
+let previousOperandElement = null;
+
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+
+    // textContent is faster than innerText as it doesn't trigger reflow
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
