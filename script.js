@@ -1,11 +1,34 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements to avoid repeated lookups
+let currentOperandElement = null;
+let previousOperandElement = null;
+
+function getDisplayElements() {
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+    return { currentOperandElement, previousOperandElement };
+}
+
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Optimization: Use lastIndexOf to find the last operator and check for existing decimal
+        // instead of splitting the entire string into an array.
+        // This is significantly faster for long expressions.
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -48,8 +71,14 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    const { currentOperandElement, previousOperandElement } = getDisplayElements();
+    // Optimization: Use textContent instead of innerText for faster updates (less reflow)
+    if (currentOperandElement) {
+        currentOperandElement.textContent = currentOperand || '0';
+    }
+    if (previousOperandElement) {
+        previousOperandElement.textContent = previousOperand;
+    }
 }
 
 // Add keyboard support

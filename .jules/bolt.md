@@ -1,0 +1,3 @@
+## 2025-05-15 - Hot path optimizations for UI and input processing
+**Learning:** Using `innerText` and `document.getElementById` inside a frequently called function like `updateDisplay` (triggered on every keystroke) creates unnecessary overhead. `innerText` triggers reflow, and DOM lookups are slow. Additionally, regex `split()` for decimal validation in `appendCharacter` scales poorly with expression length (O(N) with high constant factor and memory allocation).
+**Action:** Cache DOM elements lazily and use `textContent` for UI updates. Use `lastIndexOf` for O(N) string scanning with minimal allocation for input validation.
