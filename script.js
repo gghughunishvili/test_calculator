@@ -3,10 +3,18 @@ let previousOperand = '';
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Optimized: Use lastIndexOf to find if the current number segment already has a decimal.
+        // This is much faster than split() and regex, especially for long expressions.
+        const lastDecimal = currentOperand.lastIndexOf('.');
+        const lastOperator = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        if (lastDecimal > lastOperator) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -47,9 +55,21 @@ function calculateResult() {
     }
 }
 
+// Cache DOM elements for performance
+let currentOperandElement;
+let previousOperandElement;
+
+function getDisplayElements() {
+    if (!currentOperandElement) currentOperandElement = document.getElementById('current-operand');
+    if (!previousOperandElement) previousOperandElement = document.getElementById('previous-operand');
+    return { currentOperandElement, previousOperandElement };
+}
+
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    const { currentOperandElement, previousOperandElement } = getDisplayElements();
+    // Using textContent is faster than innerText as it doesn't trigger layout reflows
+    currentOperandElement.textContent = currentOperand || '0';
+    previousOperandElement.textContent = previousOperand;
 }
 
 // Add keyboard support
