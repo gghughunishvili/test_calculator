@@ -1,11 +1,23 @@
 let currentOperand = '';
 let previousOperand = '';
 
+// Cache DOM elements to avoid redundant lookups in updateDisplay
+let currentOperandElement;
+let previousOperandElement;
+
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
+        // Optimization: Use lastIndexOf to find the last operator and isolate the current number segment.
+        // This avoids creating a new array with split().
+        const lastOperatorIndex = Math.max(
+            currentOperand.lastIndexOf('+'),
+            currentOperand.lastIndexOf('-'),
+            currentOperand.lastIndexOf('*'),
+            currentOperand.lastIndexOf('/'),
+            currentOperand.lastIndexOf('('),
+            currentOperand.lastIndexOf(')')
+        );
+        const lastSegment = currentOperand.slice(lastOperatorIndex + 1);
         if (lastSegment.includes('.')) return;
     }
     currentOperand += char;
@@ -48,8 +60,21 @@ function calculateResult() {
 }
 
 function updateDisplay() {
-    document.getElementById('current-operand').innerText = currentOperand || '0';
-    document.getElementById('previous-operand').innerText = previousOperand;
+    // Lazy initialization of cached DOM elements
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+
+    // Optimization: textContent is faster than innerText as it doesn't trigger layout reflows.
+    if (currentOperandElement) {
+        currentOperandElement.textContent = currentOperand || '0';
+    }
+    if (previousOperandElement) {
+        previousOperandElement.textContent = previousOperand;
+    }
 }
 
 // Add keyboard support
