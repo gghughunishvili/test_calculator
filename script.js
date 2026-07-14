@@ -7,10 +7,21 @@ const previousOperandElement = document.getElementById('previous-operand');
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance: Use a manual reverse loop to check for decimals in the current segment.
+        // This avoids split() which creates expensive array allocations and string copies,
+        // especially for long expressions.
+        let lastSegmentHasDecimal = false;
+        for (let i = currentOperand.length - 1; i >= 0; i--) {
+            const c = currentOperand[i];
+            if (c === '.') {
+                lastSegmentHasDecimal = true;
+                break;
+            }
+            if ('+-*/()'.includes(c)) {
+                break;
+            }
+        }
+        if (lastSegmentHasDecimal) return;
     }
     currentOperand += char;
     updateDisplay();
