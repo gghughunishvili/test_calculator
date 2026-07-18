@@ -7,10 +7,18 @@ const previousOperandElement = document.getElementById('previous-operand');
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance optimization: Scan the operand string backwards to find the last segment
+        // instead of splitting the entire string and allocating memory for an array.
+        // This is O(M) where M is the length of the last segment, rather than O(N) where N is full expression length.
+        for (let i = currentOperand.length - 1; i >= 0; i--) {
+            const c = currentOperand[i];
+            if (c === '.') {
+                return; // Decimal point already exists in the current segment
+            }
+            if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+                break; // Met an operator or parenthesis, meaning we crossed a number boundary
+            }
+        }
     }
     currentOperand += char;
     updateDisplay();
