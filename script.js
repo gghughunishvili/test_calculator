@@ -7,10 +7,20 @@ const previousOperandElement = document.getElementById('previous-operand');
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance optimization: Search backward to find if the last segment has a decimal.
+        // This avoids expensive string splitting and array allocation (O(N) vs O(1) in typical additions).
+        let hasDecimalInLastSegment = false;
+        for (let i = currentOperand.length - 1; i >= 0; i--) {
+            const c = currentOperand[i];
+            if (c === '.') {
+                hasDecimalInLastSegment = true;
+                break;
+            }
+            if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+                break;
+            }
+        }
+        if (hasDecimalInLastSegment) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -32,8 +42,9 @@ function calculateResult() {
     try {
         if (currentOperand === '') return;
 
-        // Security: sanitize input to only allow numbers and math chars
-        if (/[^0-9+\-*/().]/.test(currentOperand)) {
+        // Security: sanitize input to only allow numbers and math chars.
+        // Safely escaped the forward slash inside the character class.
+        if (/[^0-9+\-\*\/().]/.test(currentOperand)) {
              throw new Error("Invalid Input");
         }
 
