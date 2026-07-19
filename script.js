@@ -23,7 +23,7 @@ function clearDisplay() {
 }
 
 function deleteLast() {
-    // Current operand is already a string, so toString() is redundant
+    // Remove redundant .toString() call as currentOperand is already a string
     currentOperand = currentOperand.slice(0, -1);
     updateDisplay();
 }
