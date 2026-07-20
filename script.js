@@ -7,10 +7,15 @@ const previousOperandElement = document.getElementById('previous-operand');
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance: Avoid expensive string split & array allocation.
+        // Instead, search backwards for the last operator or decimal in the current segment.
+        for (let i = currentOperand.length - 1; i >= 0; i--) {
+            const c = currentOperand[i];
+            if (c === '.') return; // Already has a decimal in this segment
+            if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+                break; // Found an operator, safely allow '.'
+            }
+        }
     }
     currentOperand += char;
     updateDisplay();
