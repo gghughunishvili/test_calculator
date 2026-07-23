@@ -1,16 +1,23 @@
 let currentOperand = '';
 let previousOperand = '';
 
-// Performance: Cache DOM elements to avoid repeated lookups
-const currentOperandElement = document.getElementById('current-operand');
-const previousOperandElement = document.getElementById('previous-operand');
+// Performance: Use lazy initialization to cache DOM elements,
+// avoiding repeated lookups and ensuring safe initialization before DOM load.
+let currentOperandElement = null;
+let previousOperandElement = null;
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance optimization: Avoid expensive string splitting and regex/array allocation
+        // by scanning backwards to find the last segment boundary (operator/bracket/decimal).
+        const operandStr = currentOperand.toString();
+        for (let i = operandStr.length - 1; i >= 0; i--) {
+            const c = operandStr[i];
+            if (c === '.') return; // Last segment already has a decimal point, skip
+            if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+                break; // Found segment boundary, we can append decimal point
+            }
+        }
     }
     currentOperand += char;
     updateDisplay();
@@ -32,8 +39,9 @@ function calculateResult() {
     try {
         if (currentOperand === '') return;
 
-        // Security: sanitize input to only allow numbers and math chars
-        if (/[^0-9+\-*/().]/.test(currentOperand)) {
+        // Security: sanitize input to only allow numbers and math chars.
+        // Properly escape hyphen and forward slash for strict JS environments.
+        if (/[^0-9+\-\*\/().]/.test(currentOperand)) {
              throw new Error("Invalid Input");
         }
 
@@ -53,10 +61,21 @@ function calculateResult() {
 }
 
 function updateDisplay() {
+    // Performance: Lazily initialize and cache DOM element references
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+
     // Performance: Use textContent instead of innerText to avoid unnecessary reflow calculations
-    // and use cached DOM elements
-    currentOperandElement.textContent = currentOperand || '0';
-    previousOperandElement.textContent = previousOperand;
+    if (currentOperandElement) {
+        currentOperandElement.textContent = currentOperand || '0';
+    }
+    if (previousOperandElement) {
+        previousOperandElement.textContent = previousOperand;
+    }
 }
 
 // Add keyboard support
