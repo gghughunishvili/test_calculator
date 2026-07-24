@@ -1,16 +1,42 @@
 let currentOperand = '';
 let previousOperand = '';
 
-// Performance: Cache DOM elements to avoid repeated lookups
-const currentOperandElement = document.getElementById('current-operand');
-const previousOperandElement = document.getElementById('previous-operand');
+// Performance: Use lazy initialization to cache DOM elements safely,
+// avoiding issues if the script is loaded before the DOM elements are parsed.
+let currentOperandElement = null;
+let previousOperandElement = null;
+
+function getCurrentOperandElement() {
+    if (!currentOperandElement) {
+        currentOperandElement = document.getElementById('current-operand');
+    }
+    return currentOperandElement;
+}
+
+function getPreviousOperandElement() {
+    if (!previousOperandElement) {
+        previousOperandElement = document.getElementById('previous-operand');
+    }
+    return previousOperandElement;
+}
 
 function appendCharacter(char) {
     if (char === '.') {
-        // Split by operators to find the last number segment
-        const segments = currentOperand.split(/[+\-*/()]/);
-        const lastSegment = segments[segments.length - 1];
-        if (lastSegment.includes('.')) return;
+        // Performance optimization: Instead of splitting the entire expression by regex,
+        // which allocates new arrays and substrings (O(N) time and memory complexity),
+        // scan backwards to check if the last segment contains a decimal (O(M) where M is segment length).
+        let hasDecimal = false;
+        for (let i = currentOperand.length - 1; i >= 0; i--) {
+            const c = currentOperand[i];
+            if (c === '.') {
+                hasDecimal = true;
+                break;
+            }
+            if (c === '+' || c === '-' || c === '*' || c === '/' || c === '(' || c === ')') {
+                break; // Hit segment boundary, no decimal in the last segment
+            }
+        }
+        if (hasDecimal) return;
     }
     currentOperand += char;
     updateDisplay();
@@ -54,9 +80,9 @@ function calculateResult() {
 
 function updateDisplay() {
     // Performance: Use textContent instead of innerText to avoid unnecessary reflow calculations
-    // and use cached DOM elements
-    currentOperandElement.textContent = currentOperand || '0';
-    previousOperandElement.textContent = previousOperand;
+    // and use lazy-loaded cached DOM elements
+    getCurrentOperandElement().textContent = currentOperand || '0';
+    getPreviousOperandElement().textContent = previousOperand;
 }
 
 // Add keyboard support
