@@ -5,6 +5,9 @@ let previousOperand = '';
 const currentOperandElement = document.getElementById('current-operand');
 const previousOperandElement = document.getElementById('previous-operand');
 
+// Performance: Cache valid operator keys in a Set for O(1) keydown evaluation
+const VALID_OPERATORS = new Set(['+', '-', '*', '/', '(', ')', '.']);
+
 function appendCharacter(char) {
     if (char === '.') {
         // Performance optimization: Use a manual reverse loop to find the last operator or decimal in the current segment.
@@ -67,9 +70,10 @@ function updateDisplay() {
 // Add keyboard support
 document.addEventListener('keydown', (event) => {
     const key = event.key;
-    if (/[0-9]/.test(key)) {
+    // Performance: Use character range check and O(1) Set lookup instead of regex test and array inclusion
+    if (key >= '0' && key <= '9') {
         appendCharacter(key);
-    } else if (['+', '-', '*', '/', '(', ')', '.'].includes(key)) {
+    } else if (VALID_OPERATORS.has(key)) {
         appendCharacter(key);
     } else if (key === 'Enter' || key === '=') {
         calculateResult();
