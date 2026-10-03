@@ -65,11 +65,15 @@ function updateDisplay() {
 }
 
 // Add keyboard support
+// Performance: Use Set lookup and direct character range check instead of regular expressions
+// and inline array creation to avoid overhead on every keydown event.
+const VALID_OPERATORS = new Set(['+', '-', '*', '/', '(', ')', '.']);
+
 document.addEventListener('keydown', (event) => {
     const key = event.key;
-    if (/[0-9]/.test(key)) {
+    if (key >= '0' && key <= '9') {
         appendCharacter(key);
-    } else if (['+', '-', '*', '/', '(', ')', '.'].includes(key)) {
+    } else if (VALID_OPERATORS.has(key)) {
         appendCharacter(key);
     } else if (key === 'Enter' || key === '=') {
         calculateResult();
