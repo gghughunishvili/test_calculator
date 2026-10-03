@@ -64,14 +64,13 @@ function updateDisplay() {
     previousOperandElement.textContent = previousOperand;
 }
 
-// Performance: Module-scoped constant Set to avoid re-allocating array on every keydown event
+// Add keyboard support
+// Performance: Use Set lookup and direct character range check instead of regular expressions
+// and inline array creation to avoid overhead on every keydown event.
 const VALID_OPERATORS = new Set(['+', '-', '*', '/', '(', ')', '.']);
 
-// Add keyboard support
 document.addEventListener('keydown', (event) => {
     const key = event.key;
-    // Performance optimization: Direct character range check and Set lookup replace regex test
-    // and array allocations, providing ~2.6x faster key evaluation on keydown events.
     if (key >= '0' && key <= '9') {
         appendCharacter(key);
     } else if (VALID_OPERATORS.has(key)) {
