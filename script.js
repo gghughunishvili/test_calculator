@@ -33,12 +33,15 @@ function deleteLast() {
     updateDisplay();
 }
 
+// Performance & Security: Hoist sanitized regular expression to avoid re-instantiating RegExp on every result calculation.
+const SANITIZE_REGEX = /[^0-9+\-\*\/().]/;
+
 function calculateResult() {
     try {
         if (currentOperand === '') return;
 
         // Security: sanitize input to only allow numbers and math chars
-        if (/[^0-9+\-*/().]/.test(currentOperand)) {
+        if (SANITIZE_REGEX.test(currentOperand)) {
              throw new Error("Invalid Input");
         }
 
