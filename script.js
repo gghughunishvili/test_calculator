@@ -5,6 +5,10 @@ let previousOperand = '';
 const currentOperandElement = document.getElementById('current-operand');
 const previousOperandElement = document.getElementById('previous-operand');
 
+// Performance: Hoist regular expression to module scope to prevent re-compilation / re-instantiation
+// of the RegExp object on every calculateResult execution.
+const SANITIZE_REGEX = /[^0-9+\-*/().]/;
+
 function appendCharacter(char) {
     if (char === '.') {
         // Performance optimization: Use a manual reverse loop to find the last operator or decimal in the current segment.
@@ -37,8 +41,8 @@ function calculateResult() {
     try {
         if (currentOperand === '') return;
 
-        // Security: sanitize input to only allow numbers and math chars
-        if (/[^0-9+\-*/().]/.test(currentOperand)) {
+        // Security: sanitize input to only allow numbers and math chars using hoisted RegExp
+        if (SANITIZE_REGEX.test(currentOperand)) {
              throw new Error("Invalid Input");
         }
 
