@@ -26,13 +26,16 @@ function appendCharacter(char) {
 }
 
 function clearDisplay() {
+    // Performance optimization: Early return if display is already clear to avoid redundant updates and DOM manipulation.
+    if (currentOperand === '' && previousOperand === '') return;
     currentOperand = '';
     previousOperand = '';
     updateDisplay();
 }
 
 function deleteLast() {
-    // Remove redundant .toString() call as currentOperand is already a string
+    // Performance optimization: Early return if there is nothing to delete to avoid redundant slice and display update.
+    if (currentOperand === '') return;
     currentOperand = currentOperand.slice(0, -1);
     updateDisplay();
 }
