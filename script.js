@@ -85,41 +85,57 @@ function updateDisplay() {
 // Add keyboard support
 // Performance: Fast-path single-character keys (`key.length === 1`) to bypass unnecessary multi-character key evaluations
 // (like 'Enter', 'Backspace', 'Escape') on high-frequency keydown events (~1.6x faster evaluation, ~36% speedup).
-document.addEventListener('keydown', (event) => {
-    const key = event.key;
+if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('keydown', (event) => {
+        const key = event.key;
 
-    if (key.length === 1) {
-        if (key >= '0' && key <= '9') {
-            appendCharacter(key);
+        if (key.length === 1) {
+            if (key >= '0' && key <= '9') {
+                appendCharacter(key);
+                return;
+            }
+
+            switch (key) {
+                case '+':
+                case '-':
+                case '*':
+                case '/':
+                case '(':
+                case ')':
+                case '.':
+                    appendCharacter(key);
+                    break;
+                case '=':
+                    calculateResult();
+                    break;
+            }
             return;
         }
 
         switch (key) {
-            case '+':
-            case '-':
-            case '*':
-            case '/':
-            case '(':
-            case ')':
-            case '.':
-                appendCharacter(key);
-                break;
-            case '=':
+            case 'Enter':
                 calculateResult();
                 break;
+            case 'Backspace':
+                deleteLast();
+                break;
+            case 'Escape':
+                clearDisplay();
+                break;
         }
-        return;
-    }
+    });
+}
 
-    switch (key) {
-        case 'Enter':
-            calculateResult();
-            break;
-        case 'Backspace':
-            deleteLast();
-            break;
-        case 'Escape':
-            clearDisplay();
-            break;
-    }
-});
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        appendCharacter,
+        clearDisplay,
+        deleteLast,
+        calculateResult,
+        updateDisplay,
+        getCurrentOperand: () => currentOperand,
+        setCurrentOperand: (val) => { currentOperand = val; },
+        getPreviousOperand: () => previousOperand,
+        setPreviousOperand: (val) => { previousOperand = val; }
+    };
+}
