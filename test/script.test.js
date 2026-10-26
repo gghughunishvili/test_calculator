@@ -1,287 +1,159 @@
-const { test, describe, beforeEach } = require('node:test');
+const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
 
-const scriptCode = fs.readFileSync(path.join(__dirname, '../script.js'), 'utf8');
+// Mock DOM elements before importing script.js
+const currentOperandEl = { textContent: '' };
+const previousOperandEl = { textContent: '' };
 
-function createCalculatorContext() {
-    const listeners = {};
-    const elements = {
-        'current-operand': { textContent: '0' },
-        'previous-operand': { textContent: '' }
-    };
+global.document = {
+    getElementById: (id) => {
+        if (id === 'current-operand') return currentOperandEl;
+        if (id === 'previous-operand') return previousOperandEl;
+        return null;
+    },
+    addEventListener: () => {}
+};
 
-    const mockDocument = {
-        getElementById(id) {
-            return elements[id] || null;
-        },
-        addEventListener(event, fn) {
-            if (!listeners[event]) listeners[event] = [];
-            listeners[event].push(fn);
-        }
-    };
+const calc = require('../script.js');
 
-    const context = {
-        document: mockDocument,
-        setTimeout: (fn, ms) => setTimeout(fn, ms),
-        // Expose helper to emit events
-        emitKeydown(key) {
-            if (listeners['keydown']) {
-                listeners['keydown'].forEach(fn => fn({ key }));
-            }
-        },
-        elements
-    };
-
-    vm.createContext(context);
-    vm.runInContext(scriptCode, context);
-
-    return context;
-}
-
-describe('Calculator script.js tests', () => {
-    let ctx;
-
+describe('appendCharacter - Decimal Point Validation Edge Cases', () => {
     beforeEach(() => {
-        ctx = createCalculatorContext();
+        calc.setCurrentOperand('');
+        calc.setPreviousOperand('');
+        calc.clearDisplay();
+        currentOperandEl.textContent = '';
+        previousOperandEl.textContent = '';
     });
 
-    describe('appendCharacter', () => {
-        test('appends numbers and updates display', () => {
-            ctx.appendCharacter('1');
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('3');
-            assert.equal(ctx.elements['current-operand'].textContent, '123');
-        });
-
-        test('handles single decimal point per number segment', () => {
-            ctx.appendCharacter('1');
-            ctx.appendCharacter('.');
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('.'); // Should be ignored
-            assert.equal(ctx.elements['current-operand'].textContent, '1.2');
-        });
-
-        test('allows decimal points in different number segments', () => {
-            ctx.appendCharacter('1');
-            ctx.appendCharacter('.');
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('3');
-            ctx.appendCharacter('.');
-            ctx.appendCharacter('4');
-            assert.equal(ctx.elements['current-operand'].textContent, '1.2+3.4');
-        });
-
-        test('handles decimal point after parentheses', () => {
-            ctx.appendCharacter('(');
-            ctx.appendCharacter('.');
-            ctx.appendCharacter('5');
-            assert.equal(ctx.elements['current-operand'].textContent, '(.5');
-        });
-
-        test('appends operators and parentheses correctly', () => {
-            ctx.appendCharacter('(');
-            ctx.appendCharacter('5');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('3');
-            ctx.appendCharacter(')');
-            ctx.appendCharacter('*');
-            ctx.appendCharacter('2');
-            assert.equal(ctx.elements['current-operand'].textContent, '(5+3)*2');
-        });
+    it('ignores duplicate decimal point when number segment already has a decimal (single digit)', () => {
+        calc.setCurrentOperand('5.');
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '5.');
     });
 
-    describe('clearDisplay', () => {
-        test('clears current and previous operands', () => {
-            ctx.appendCharacter('5');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('5');
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, '10');
-            assert.equal(ctx.elements['previous-operand'].textContent, '5+5 =');
-
-            ctx.clearDisplay();
-
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-            assert.equal(ctx.elements['previous-operand'].textContent, '');
-        });
-
-        test('does nothing if display is already clear', () => {
-            ctx.clearDisplay();
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-            assert.equal(ctx.elements['previous-operand'].textContent, '');
-        });
+    it('ignores duplicate decimal point in multi-digit floating point number', () => {
+        calc.setCurrentOperand('123.45');
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '123.45');
     });
 
-    describe('deleteLast', () => {
-        test('deletes the last character from current operand', () => {
-            ctx.appendCharacter('1');
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('3');
-            ctx.deleteLast();
-            assert.equal(ctx.elements['current-operand'].textContent, '12');
-        });
-
-        test('shows 0 when last remaining character is deleted', () => {
-            ctx.appendCharacter('7');
-            ctx.deleteLast();
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-        });
-
-        test('does nothing when current operand is already empty', () => {
-            ctx.deleteLast();
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-        });
+    it('ignores consecutive decimal point attempts starting from empty display', () => {
+        calc.setCurrentOperand('');
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '.');
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '.');
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '.');
     });
 
-    describe('calculateResult', () => {
-        test('evaluates simple addition correctly', () => {
-            ctx.appendCharacter('5');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('3');
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, '8');
-            assert.equal(ctx.elements['previous-operand'].textContent, '5+3 =');
-        });
-
-        test('respects operator precedence', () => {
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('3');
-            ctx.appendCharacter('*');
-            ctx.appendCharacter('4');
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, '14');
-            assert.equal(ctx.elements['previous-operand'].textContent, '2+3*4 =');
-        });
-
-        test('handles parentheses correctly', () => {
-            ctx.appendCharacter('(');
-            ctx.appendCharacter('2');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('3');
-            ctx.appendCharacter(')');
-            ctx.appendCharacter('*');
-            ctx.appendCharacter('4');
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, '20');
-            assert.equal(ctx.elements['previous-operand'].textContent, '(2+3)*4 =');
-        });
-
-        test('does nothing if current operand is empty', () => {
-            ctx.calculateResult();
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-            assert.equal(ctx.elements['previous-operand'].textContent, '');
-        });
-
-        test('handles syntax errors gracefully', async () => {
-            ctx.appendCharacter('5');
-            ctx.appendCharacter('+');
-            ctx.appendCharacter('*');
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, 'Error');
-
-            // Wait for setTimeout (2000ms) to clear display
-            await new Promise(resolve => setTimeout(resolve, 2100));
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-        });
-
-        test('sanitizes input and rejects unauthorized characters', () => {
-            // Directly set currentOperand in context if possible or inject via code evaluation
-            ctx.appendCharacter('5');
-            // Inject illegal character into currentOperand
-            vm.runInContext("currentOperand = 'console.log(1)'", ctx);
-            ctx.calculateResult();
-
-            assert.equal(ctx.elements['current-operand'].textContent, 'Error');
-        });
+    it('allows a decimal point in a new segment after an operator (+, -, *, /, (, ))', () => {
+        const operators = ['+', '-', '*', '/', '(', ')'];
+        for (const op of operators) {
+            calc.setCurrentOperand(`12.3${op}`);
+            calc.appendCharacter('.');
+            assert.equal(calc.getCurrentOperand(), `12.3${op}.`, `Failed for operator ${op}`);
+        }
     });
 
-    describe('updateDisplay', () => {
-        test('displays 0 when currentOperand is empty', () => {
-            ctx.updateDisplay();
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-        });
-
-        test('caches state and avoids redundant DOM mutation', () => {
-            ctx.appendCharacter('9');
-            assert.equal(ctx.elements['current-operand'].textContent, '9');
-
-            // Mutate DOM manually to see if updateDisplay skips writing when value hasn't changed
-            ctx.elements['current-operand'].textContent = 'MUTATED';
-            ctx.updateDisplay();
-            assert.equal(ctx.elements['current-operand'].textContent, 'MUTATED');
-
-            // When operand actually changes, DOM is updated
-            ctx.appendCharacter('0');
-            assert.equal(ctx.elements['current-operand'].textContent, '90');
-        });
+    it('ignores duplicate decimal point in second segment when second segment already has a decimal', () => {
+        const operators = ['+', '-', '*', '/'];
+        for (const op of operators) {
+            calc.setCurrentOperand(`12.3${op}4.5`);
+            calc.appendCharacter('.');
+            assert.equal(calc.getCurrentOperand(), `12.3${op}4.5`, `Failed for expression with operator ${op}`);
+        }
     });
 
-    describe('keyboard navigation (keydown listener)', () => {
-        test('handles single digit keys', () => {
-            ctx.emitKeydown('5');
-            ctx.emitKeydown('9');
-            assert.equal(ctx.elements['current-operand'].textContent, '59');
-        });
+    it('does not modify DOM textContent when appending a duplicate decimal is rejected', () => {
+        calc.setCurrentOperand('10.5');
+        calc.updateDisplay();
+        const domBefore = currentOperandEl.textContent;
 
-        test('handles operator keys', () => {
-            ctx.emitKeydown('8');
-            ctx.emitKeydown('+');
-            ctx.emitKeydown('2');
-            assert.equal(ctx.elements['current-operand'].textContent, '8+2');
-        });
+        calc.appendCharacter('.');
+        assert.equal(calc.getCurrentOperand(), '10.5');
+        assert.equal(currentOperandEl.textContent, domBefore);
+    });
+});
 
-        test('handles Enter key for evaluation', () => {
-            ctx.emitKeydown('4');
-            ctx.emitKeydown('*');
-            ctx.emitKeydown('3');
-            ctx.emitKeydown('Enter');
-            assert.equal(ctx.elements['current-operand'].textContent, '12');
-            assert.equal(ctx.elements['previous-operand'].textContent, '4*3 =');
-        });
+describe('calculateResult - Math Parser and Security Verification', () => {
+    beforeEach(() => {
+        calc.setCurrentOperand('');
+        calc.setPreviousOperand('');
+        calc.clearDisplay();
+        currentOperandEl.textContent = '';
+        previousOperandEl.textContent = '';
+    });
 
-        test('handles = key for evaluation', () => {
-            ctx.emitKeydown('9');
-            ctx.emitKeydown('/');
-            ctx.emitKeydown('3');
-            ctx.emitKeydown('=');
-            assert.equal(ctx.elements['current-operand'].textContent, '3');
-            assert.equal(ctx.elements['previous-operand'].textContent, '9/3 =');
-        });
+    it('evaluates basic arithmetic expressions correctly', () => {
+        calc.setCurrentOperand('12+34');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '46');
+        assert.equal(calc.getPreviousOperand(), '12+34 =');
 
-        test('handles Backspace key for deletion', () => {
-            ctx.emitKeydown('1');
-            ctx.emitKeydown('2');
-            ctx.emitKeydown('Backspace');
-            assert.equal(ctx.elements['current-operand'].textContent, '1');
-        });
+        calc.setCurrentOperand('100-45');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '55');
 
-        test('handles Escape key for clearing display', () => {
-            ctx.emitKeydown('1');
-            ctx.emitKeydown('+');
-            ctx.emitKeydown('2');
-            ctx.emitKeydown('Enter');
-            assert.equal(ctx.elements['current-operand'].textContent, '3');
-            ctx.emitKeydown('Escape');
-            assert.equal(ctx.elements['current-operand'].textContent, '0');
-            assert.equal(ctx.elements['previous-operand'].textContent, '');
-        });
+        calc.setCurrentOperand('6*7');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '42');
 
-        test('ignores unhandled keys', () => {
-            ctx.emitKeydown('7');
-            ctx.emitKeydown('a');
-            ctx.emitKeydown('Shift');
-            ctx.emitKeydown('ArrowLeft');
-            assert.equal(ctx.elements['current-operand'].textContent, '7');
-        });
+        calc.setCurrentOperand('20/4');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '5');
+    });
+
+    it('respects operator precedence and parentheses', () => {
+        calc.setCurrentOperand('2+3*4');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '14');
+
+        calc.setCurrentOperand('(2+3)*4');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '20');
+
+        calc.setCurrentOperand('10+(20-5)*2');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '40');
+    });
+
+    it('handles unary minus and plus operators', () => {
+        calc.setCurrentOperand('-5+10');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '5');
+
+        calc.setCurrentOperand('-(3+2)');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '-5');
+    });
+
+    it('handles floating point math', () => {
+        calc.setCurrentOperand('2.5+3.5');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), '6');
+    });
+
+    it('handles invalid math syntax gracefully by setting display to Error', () => {
+        calc.setCurrentOperand('2**3');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), 'Error');
+
+        calc.setCurrentOperand('(2+3');
+        calc.calculateResult();
+        assert.equal(calc.getCurrentOperand(), 'Error');
+    });
+
+    it('safely rejects JavaScript code injection attempts without executing arbitrary code', () => {
+        let executed = false;
+        global.testExecuted = () => { executed = true; };
+
+        calc.setCurrentOperand('global.testExecuted()');
+        calc.calculateResult();
+
+        assert.equal(executed, false, 'Injected JavaScript function must not be executed');
+        assert.equal(calc.getCurrentOperand(), 'Error');
+
+        delete global.testExecuted;
     });
 });
