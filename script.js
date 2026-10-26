@@ -44,6 +44,112 @@ function deleteLast() {
     updateDisplay();
 }
 
+function evaluateExpression(expr) {
+    let index = 0;
+
+    function skipWhitespace() {
+        while (index < expr.length && expr[index] === ' ') {
+            index++;
+        }
+    }
+
+    function parsePrimary() {
+        skipWhitespace();
+        if (index >= expr.length) {
+            throw new Error("Unexpected end of expression");
+        }
+
+        if (expr[index] === '(') {
+            index++;
+            const value = parseExpression();
+            skipWhitespace();
+            if (index >= expr.length || expr[index] !== ')') {
+                throw new Error("Expected closing parenthesis");
+            }
+            index++;
+            return value;
+        }
+
+        const start = index;
+        let hasDecimal = false;
+
+        while (index < expr.length) {
+            const char = expr[index];
+            if (char >= '0' && char <= '9') {
+                index++;
+            } else if (char === '.' && !hasDecimal) {
+                hasDecimal = true;
+                index++;
+            } else {
+                break;
+            }
+        }
+
+        if (start === index || (index - start === 1 && expr[start] === '.')) {
+            throw new Error("Expected number");
+        }
+
+        const numStr = expr.slice(start, index);
+        const num = Number(numStr);
+        if (Number.isNaN(num)) {
+            throw new Error("Invalid number");
+        }
+        return num;
+    }
+
+    function parseFactor() {
+        skipWhitespace();
+        if (index < expr.length && (expr[index] === '+' || expr[index] === '-')) {
+            const op = expr[index];
+            index++;
+            const factor = parseFactor();
+            return op === '+' ? factor : -factor;
+        }
+        return parsePrimary();
+    }
+
+    function parseTerm() {
+        let left = parseFactor();
+        while (true) {
+            skipWhitespace();
+            if (index >= expr.length) break;
+            const op = expr[index];
+            if (op === '*' || op === '/') {
+                index++;
+                const right = parseFactor();
+                left = op === '*' ? left * right : left / right;
+            } else {
+                break;
+            }
+        }
+        return left;
+    }
+
+    function parseExpression() {
+        let left = parseTerm();
+        while (true) {
+            skipWhitespace();
+            if (index >= expr.length) break;
+            const op = expr[index];
+            if (op === '+' || op === '-') {
+                index++;
+                const right = parseTerm();
+                left = op === '+' ? left + right : left - right;
+            } else {
+                break;
+            }
+        }
+        return left;
+    }
+
+    const result = parseExpression();
+    skipWhitespace();
+    if (index < expr.length) {
+        throw new Error("Unexpected trailing characters");
+    }
+    return result;
+}
+
 function calculateResult() {
     try {
         if (currentOperand === '') return;
@@ -53,7 +159,7 @@ function calculateResult() {
              throw new Error("Invalid Input");
         }
 
-        const result = new Function('return ' + currentOperand)();
+        const result = evaluateExpression(currentOperand);
 
         previousOperand = currentOperand + ' =';
         currentOperand = result.toString();
@@ -133,6 +239,7 @@ if (typeof module !== 'undefined' && module.exports) {
         deleteLast,
         calculateResult,
         updateDisplay,
+        evaluateExpression,
         getCurrentOperand: () => currentOperand,
         setCurrentOperand: (val) => { currentOperand = val; },
         getPreviousOperand: () => previousOperand,
