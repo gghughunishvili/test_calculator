@@ -86,6 +86,9 @@ function updateDisplay() {
 // Performance: Fast-path single-character keys (`key.length === 1`) to bypass unnecessary multi-character key evaluations
 // (like 'Enter', 'Backspace', 'Escape') on high-frequency keydown events (~1.6x faster evaluation, ~36% speedup).
 document.addEventListener('keydown', (event) => {
+    // Performance optimization: Early exit for modifier key combinations (Ctrl, Alt, Meta) to prevent unnecessary key evaluation overhead and interference with browser/system shortcuts.
+    if (event.ctrlKey || event.altKey || event.metaKey) return;
+
     const key = event.key;
 
     if (key.length === 1) {

@@ -27,9 +27,10 @@ function createCalculatorContext() {
         document: mockDocument,
         setTimeout: (fn, ms) => setTimeout(fn, ms),
         // Expose helper to emit events
-        emitKeydown(key) {
+        emitKeydown(keyOrEvent) {
             if (listeners['keydown']) {
-                listeners['keydown'].forEach(fn => fn({ key }));
+                const eventObj = typeof keyOrEvent === 'string' ? { key: keyOrEvent } : keyOrEvent;
+                listeners['keydown'].forEach(fn => fn(eventObj));
             }
         },
         elements
@@ -282,6 +283,15 @@ describe('Calculator script.js tests', () => {
             ctx.emitKeydown('Shift');
             ctx.emitKeydown('ArrowLeft');
             assert.equal(ctx.elements['current-operand'].textContent, '7');
+        });
+
+        test('ignores modifier key combinations', () => {
+            ctx.emitKeydown('5');
+            ctx.emitKeydown({ key: 'c', ctrlKey: true });
+            ctx.emitKeydown({ key: '1', ctrlKey: true });
+            ctx.emitKeydown({ key: 'r', metaKey: true });
+            ctx.emitKeydown({ key: 'a', altKey: true });
+            assert.equal(ctx.elements['current-operand'].textContent, '5');
         });
     });
 });
