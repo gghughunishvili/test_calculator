@@ -27,9 +27,14 @@ function createCalculatorContext() {
         document: mockDocument,
         setTimeout: (fn, ms) => setTimeout(fn, ms),
         // Expose helper to emit events
-        emitKeydown(key) {
+        emitKeydown(key, modifiers = {}) {
             if (listeners['keydown']) {
-                listeners['keydown'].forEach(fn => fn({ key }));
+                listeners['keydown'].forEach(fn => fn({
+                    key,
+                    ctrlKey: !!modifiers.ctrlKey,
+                    altKey: !!modifiers.altKey,
+                    metaKey: !!modifiers.metaKey
+                }));
             }
         },
         elements
@@ -282,6 +287,15 @@ describe('Calculator script.js tests', () => {
             ctx.emitKeydown('Shift');
             ctx.emitKeydown('ArrowLeft');
             assert.equal(ctx.elements['current-operand'].textContent, '7');
+        });
+
+        test('ignores shortcut keys pressed with modifiers', () => {
+            ctx.emitKeydown('1');
+            ctx.emitKeydown('c', { ctrlKey: true });
+            ctx.emitKeydown('v', { ctrlKey: true });
+            ctx.emitKeydown('r', { metaKey: true });
+            ctx.emitKeydown('a', { altKey: true });
+            assert.equal(ctx.elements['current-operand'].textContent, '1');
         });
     });
 });
